@@ -20,8 +20,8 @@ include_directories(
 #     ${JSONCPP_LIBRARIES}
 # )
 
-add_executable(app main.cpp api.cpp)
-target_link_libraries(app
+add_executable(main src/main.cpp src/api.cpp)
+target_link_libraries(main
     ${CURL_LIBRARIES}
     ${JSONCPP_LIBRARIES}
 )
