@@ -9,6 +9,22 @@
 #include <curl/curl.h>
 #include <json/json.h>
 
+// #define ENABLE_PROFILING
+#ifdef ENABLE_PROFILING
+#include <chrono>
+#include <stdio.h>
+#define PROFILE_MAIN_BEGIN(name) auto PROFILE_MAIN_BEGIN_VAR_##name = std::chrono::high_resolution_clock::now()
+#define PROFILE_MAIN_END(name)                                                                                                              \
+    {                                                                                                                                       \
+        auto PROFILE_MAIN_END_VAR_##name = std::chrono::high_resolution_clock::now();                                                       \
+        auto PERIOD_##name = PROFILE_MAIN_END_VAR_##name - PROFILE_MAIN_BEGIN_VAR_##name;                                                   \
+        printf("%s%s took %.6fms\n", "PROFILE_MAIN_", #name, std::chrono::duration_cast<std::chrono::milliseconds>(PERIOD_##name).count()); \
+    }
+#else
+#define PROFILE_MAIN_BEGIN(name)
+#define PROFILE_MAIN_END(name)
+#endif // ENABLE_PROFILING
+
 using namespace std;
 
 class API
@@ -17,9 +33,10 @@ class API
     API();
     ~API();
 
-    bool request();
+    bool requestPrice();
     void printResult() { cout << json_data_.toStyledString() << endl; }
-    virtual void parse(double &buy_price, double &sell_price) = 0;
+    std::string getRequestResult() const { return json_data_.toStyledString(); }
+    virtual void parsePrice(std::vector<double> &sell_price, std::vector<double> &buy_price) = 0;
 
     const double FEE_TRADE_RATIO = 0.001;
 

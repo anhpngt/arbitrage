@@ -20,7 +20,15 @@ include_directories(
 #     ${JSONCPP_LIBRARIES}
 # )
 
-add_executable(main src/main.cpp src/api.cpp)
+set(SOURCES
+    src/main.cpp
+    src/api.cpp
+    src/exchanges.cpp
+    src/binance.cpp
+    src/kucoin.cpp
+)
+
+add_executable(main ${SOURCES})
 target_link_libraries(main
     ${CURL_LIBRARIES}
     ${JSONCPP_LIBRARIES}

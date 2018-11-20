@@ -30,7 +30,7 @@ API::~API()
     release();
 }
 
-bool API::request()
+bool API::requestPrice()
 {
     http_data_.clear();
     res_ = curl_easy_perform(curl_);
