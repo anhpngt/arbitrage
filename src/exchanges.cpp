@@ -76,7 +76,7 @@ void Exchange<SiteA, SiteB>::getArbitrage()
 
         if (profit2 > 1 && profit2 < 999)
         {
-            cout << "\033[32mBuy " << SiteA::SYMBOLS[i] << " from " << site_a_.name()
+            cout << "\033[32mBuy " << SiteA::SYMBOLS[i] << " / " << site_a_.name()
                  << " and sell " << site_b_.name() << " / " << SiteB::SYMBOLS[i] << "\n"
                  << "Profit ratio: " << profit2 << "\033[0m" << endl;
         }
