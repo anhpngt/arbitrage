@@ -1,17 +1,16 @@
 #include "api.h"
 
-API::API() : headers_(nullptr)
+API::API() : name_("API"), headers_(nullptr)
 {
     // Setup connections
     curl_ = curl_easy_init();
     if (curl_)
     {
-        *headers_;
         headers_ = curl_slist_append(headers_, "content-Type: application/json");
         headers_ = curl_slist_append(headers_, "charsets: utf-8");
 
         curl_easy_setopt(curl_, CURLOPT_HTTPHEADER, headers_);
-        curl_easy_setopt(curl_, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        // curl_easy_setopt(curl_, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
         // curl_easy_setopt(curl_, CURLOPT_TIMEOUT, 10);           // time-out
         // curl_easy_setopt(curl_, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, API::writeData);

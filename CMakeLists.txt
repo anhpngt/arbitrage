@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(arbitrage)
 
-add_definitions(-std=c++11)
+# add_definitions(-std=c++11)
+SET(CMAKE_CXX_FLAGS "-std=c++14 -O2 -Wall -pthread ${CMAKE_CXX_FLAGS}")
 
 find_package(CURL REQUIRED)
 
@@ -13,12 +14,6 @@ include_directories(
     ${CURL_INCLUDE_DIRS}
     ${JSONCPP_INCLUDE_DIRS}
 )
-
-# add_executable(main main.cpp)
-# target_link_libraries(main
-#     ${CURL_LIBRARIES}
-#     ${JSONCPP_LIBRARIES}
-# )
 
 set(SOURCES
     src/main.cpp

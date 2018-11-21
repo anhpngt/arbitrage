@@ -11,6 +11,7 @@ class Binance : public API
   public:
     Binance()
     {
+        name_ = "Binance";
         curl_easy_setopt(curl_, CURLOPT_URL, "https://api.binance.com/api/v3/ticker/price");
     }
 

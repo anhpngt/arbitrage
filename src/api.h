@@ -12,17 +12,18 @@
 // #define ENABLE_PROFILING
 #ifdef ENABLE_PROFILING
 #include <chrono>
-#include <stdio.h>
-#define PROFILE_MAIN_BEGIN(name) auto PROFILE_MAIN_BEGIN_VAR_##name = std::chrono::high_resolution_clock::now()
-#define PROFILE_MAIN_END(name)                                                                                                              \
-    {                                                                                                                                       \
-        auto PROFILE_MAIN_END_VAR_##name = std::chrono::high_resolution_clock::now();                                                       \
-        auto PERIOD_##name = PROFILE_MAIN_END_VAR_##name - PROFILE_MAIN_BEGIN_VAR_##name;                                                   \
-        printf("%s%s took %.6fms\n", "PROFILE_MAIN_", #name, std::chrono::duration_cast<std::chrono::milliseconds>(PERIOD_##name).count()); \
+#define PROFILER_BEGIN(name) auto PROFILE_MAIN_BEGIN_VAR_##name = std::chrono::system_clock::now()
+#define PROFILER_END(name)                                                                        \
+    {                                                                                             \
+        auto PROFILE_MAIN_END_VAR_##name = std::chrono::system_clock::now();                      \
+        auto PERIOD_##name = PROFILE_MAIN_END_VAR_##name - PROFILE_MAIN_BEGIN_VAR_##name;         \
+        std::cout << "----- " << #name << " took: "                                               \
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(PERIOD_##name).count() \
+                  << "ms" << std::endl;                                                           \
     }
 #else
-#define PROFILE_MAIN_BEGIN(name)
-#define PROFILE_MAIN_END(name)
+#define PROFILER_BEGIN(name)
+#define PROFILER_END(name)
 #endif // ENABLE_PROFILING
 
 using namespace std;
@@ -33,18 +34,28 @@ class API
     API();
     ~API();
 
+    /* Use REST API to get quotes. API is implemented in class' constructor */
     bool requestPrice();
-    void printResult() { cout << json_data_.toStyledString() << endl; }
-    std::string getRequestResult() const { return json_data_.toStyledString(); }
+
+    /* Parse price from json */
     virtual void parsePrice(std::vector<double> &sell_price, std::vector<double> &buy_price) = 0;
+
+    /* A simple print retrieved data */
+    void printResult() { cout << json_data_.toStyledString() << endl; }
+
+    /* Get member values */
+    inline std::string getRequestResult() const { return json_data_.toStyledString(); }
+    inline int getHttpResult() const { return http_code_; }
+    inline std::string name() const { return name_; }
 
     const double FEE_TRADE_RATIO = 0.001;
 
   protected:
+    std::string name_;
     CURL *curl_;
     struct curl_slist *headers_;
     std::string http_data_;
-
+    
     CURLcode res_;
     int http_code_;
 

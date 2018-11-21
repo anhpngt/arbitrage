@@ -11,7 +11,7 @@ class Kucoin : public API
   public:
     Kucoin()
     {
-        // curl_easy_setopt(curl_, CURLOPT_URL, "https://api.kucoin.com/v1/open/tick?symbol=ETH-BTC");
+        name_ = "Kucoin";
         curl_easy_setopt(curl_, CURLOPT_URL, "https://api.kucoin.com/v1/open/tick");
     }
 
