@@ -53,7 +53,7 @@ void Exchange<SiteA, SiteB>::getArbitrage()
     PROFILER_BEGIN(Logging);
     for (int i = 0; i < a_sell.size(); ++i)
     {
-        logger_ << std::fixed << std::setprecision(6) 
+        logger_ << std::fixed << std::setprecision(6)
                 << SiteA::SYMBOLS[i] << " : "
                 << a_sell[i] << "\t" << a_buy[i] << "\t||\t" << b_sell[i] << "\t" << b_buy[i] << std::endl;
     }
@@ -65,20 +65,23 @@ void Exchange<SiteA, SiteB>::getArbitrage()
     PROFILER_BEGIN(Computation);
     for (int i = 0; i < a_sell.size(); i++)
     {
-        double profit1 = b_buy[i] / a_sell[i] * (1 - site_b_.FEE_TRADE_RATIO) * (1 - site_a_.FEE_TRADE_RATIO);
-        double profit2 = a_buy[i] / b_sell[i] * (1 - site_b_.FEE_TRADE_RATIO) * (1 - site_a_.FEE_TRADE_RATIO);
-        if (profit1 > 1 && profit1 < 999)
+        double profit1 = b_buy[i] * (1 - site_b_.FEE_TRADE_RATIO) - a_sell[i] * (1 + site_a_.FEE_TRADE_RATIO);
+        double profit2 = a_buy[i] * (1 - site_a_.FEE_TRADE_RATIO) - b_sell[i] * (1 + site_b_.FEE_TRADE_RATIO);
+
+        if (profit1 > 0)
         {
-            cout << "\033[32mBuy " << SiteB::SYMBOLS[i] << " / " << site_b_.name()
-                 << " and sell " << site_a_.name() << " / " << SiteA::SYMBOLS[i] << "\n"
+            cout << "\033[32mBuy 1 " << SiteA::SYMBOLS[i] << " coin at " << site_a_.name()
+                 << ", sell 1 " << SiteB::SYMBOLS[i] << " coin at " << site_b_.name() << "\n"
                  << "Profit ratio: " << profit1 << "\033[0m" << endl;
+            cout << "\tb_buy = " << b_buy[i] << "\ta_sell = " << a_sell[i] << endl;
         }
 
-        if (profit2 > 1 && profit2 < 999)
+        if (profit2 > 0)
         {
-            cout << "\033[32mBuy " << SiteA::SYMBOLS[i] << " / " << site_a_.name()
-                 << " and sell " << site_b_.name() << " / " << SiteB::SYMBOLS[i] << "\n"
+            cout << "\033[32mBuy 1 " << SiteB::SYMBOLS[i] << " coin at " << site_b_.name()
+                 << ", sell 1 " << SiteA::SYMBOLS[i] << " coin at " << site_a_.name() << "\n"
                  << "Profit ratio: " << profit2 << "\033[0m" << endl;
+            cout << "\ta_buy = " << a_buy[i] << "\tb_sell = " << b_sell[i] << endl;
         }
     }
     PROFILER_END(Computation);
