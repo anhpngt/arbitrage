@@ -1,41 +1,22 @@
 #include "kucoin.h"
 
 std::vector<std::string> Kucoin::SYMBOLS = {
-    "ETH-BTC",
-    "LTC-BTC",
-    "NEO-BTC",
-    "GAS-BTC",
-    "WTC-BTC",
-    "QTUM-BTC",
-    "OMG-BTC",
-    "ZRX-BTC",
-    "KNC-BTC",
-    "SNM-BTC"};
+    "BTC-USDT",
+    "ETH-USDT",
+    "LTC-USDT",
+    "NEO-USDT"};
 
 std::unordered_map<std::string, int> Kucoin::SYMBOL_MAP = {
-    {"ETH-BTC", 0},
-    {"LTC-BTC", 1},
-    {"NEO-BTC", 2},
-    {"GAS-BTC", 3},
-    {"WTC-BTC", 4},
-    {"QTUM-BTC", 5},
-    {"OMG-BTC", 6},
-    {"ZRX-BTC", 7},
-    {"KNC-BTC", 8},
-    {"SNM-BTC", 9}};
+    {"BTC-USDT", 0},
+    {"ETH-USDT", 1},
+    {"LTC-USDT", 2},
+    {"NEO-USDT", 3}};
 
 std::unordered_map<std::string, std::string> Kucoin::CHECK_MAP = {
-    {"ETC", "ETH-BTC"},
-    {"LTC", "LTC-BTC"},
-    {"NEO", "NEO-BTC"},
-    {"GAS", "GAS-BTC"},
-    {"WTC", "WTC-BTC"},
-    {"QTUM", "QTUM-BTC"},
-    {"OMG", "OMG-BTC"},
-    {"ZRX", "ZRX-BTC"},
-    {"KNC", "KNC-BTC"},
-    {"SNM", "SNM-BTC"},
-};
+    {"BTC", "BTC-USDT"},
+    {"ETH", "ETH-USDT"},
+    {"LTC", "LTC-USDT"},
+    {"NEO", "NEO-USDT"}};
 
 void Kucoin::parsePrice(std::vector<double> &sell_price, std::vector<double> &buy_price)
 {
