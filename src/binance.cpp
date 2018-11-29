@@ -21,19 +21,19 @@ std::unordered_map<std::string, std::string> Binance::CHECK_MAP = {
 void Binance::parsePrice(std::vector<double> &sell_price, std::vector<double> &buy_price)
 {
     sell_price.resize(SYMBOLS.size());
-    for (auto &item : json_data_)
+    buy_price.resize(SYMBOLS.size());
+    for (const auto &item : document_.GetArray())
     {
-        if (item.isMember("price") && item.isMember("symbol"))
+        if (item.HasMember("symbol") && item.HasMember("bidPrice") && item.HasMember("askPrice"))
         {
-            std::unordered_map<std::string, int>::const_iterator look_up = SYMBOL_MAP.find(item["symbol"].asString());
+            std::unordered_map<std::string, int>::const_iterator look_up = SYMBOL_MAP.find(item["symbol"].GetString());
             if (look_up != SYMBOL_MAP.end())
             {
-                sell_price[look_up->second] = std::stod(item["price"].asString());
+                sell_price[look_up->second] = std::stod(item["askPrice"].GetString());
+                buy_price[look_up->second] = std::stod(item["bidPrice"].GetString());
             }
         }
         else
-            throw std::runtime_error(item.toStyledString());
+            throw std::runtime_error("[Binance] Invalid item encountered");
     }
-
-    buy_price = sell_price;
 }

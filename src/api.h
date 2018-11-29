@@ -4,10 +4,12 @@
 #include <iostream>
 #include <iomanip>
 #include <memory>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include <curl/curl.h>
-#include <json/json.h>
+#include "rapidjson/document.h"
 
 // #define ENABLE_PROFILING
 #ifdef ENABLE_PROFILING
@@ -40,11 +42,7 @@ class API
     /* Parse price from json */
     virtual void parsePrice(std::vector<double> &sell_price, std::vector<double> &buy_price) = 0;
 
-    /* A simple print retrieved data */
-    void printResult() { cout << json_data_.toStyledString() << endl; }
-
     /* Get member values */
-    inline std::string getRequestResult() const { return json_data_.toStyledString(); }
     inline int getHttpResult() const { return http_code_; }
     inline std::string name() const { return name_; }
 
@@ -55,12 +53,11 @@ class API
     CURL *curl_;
     struct curl_slist *headers_;
     std::string http_data_;
-    
+
     CURLcode res_;
     int http_code_;
 
-    Json::Value json_data_;
-    Json::Reader json_reader_;
+    rapidjson::Document document_;
 
   private:
     void release();

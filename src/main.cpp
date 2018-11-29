@@ -11,9 +11,16 @@ int main()
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
     Exchange<Binance, Kucoin> ex("log.txt");
-    while(true)
+    while (true)
     {
-        ex.getArbitrage();
+        try
+        {
+            ex.getArbitrage();
+        }
+        catch (...)
+        {
+            // simply skip to the next loop for now
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 

@@ -22,21 +22,26 @@ void Kucoin::parsePrice(std::vector<double> &sell_price, std::vector<double> &bu
 {
     sell_price.resize(SYMBOLS.size());
     buy_price.resize(SYMBOLS.size());
-    if (json_data_["success"].asBool())
+    if (document_.HasMember("success"))
     {
-        for (auto &item : json_data_["data"])
+        if (document_["success"].GetBool())
         {
-            if (item.isMember("buy") && item.isMember("sell"))
+            for (const auto &item : document_["data"].GetArray())
             {
-                std::unordered_map<std::string, int>::const_iterator look_up = SYMBOL_MAP.find(item["symbol"].asString());
-                if (look_up != SYMBOL_MAP.end())
+                if (item.HasMember("buy") && item.HasMember("sell"))
                 {
-                    sell_price[look_up->second] = std::stod(item["sell"].asString());
-                    buy_price[look_up->second] = std::stod(item["buy"].asString());
+                    std::unordered_map<std::string, int>::const_iterator look_up = SYMBOL_MAP.find(item["symbol"].GetString());
+                    if (look_up != SYMBOL_MAP.end())
+                    {
+                        sell_price[look_up->second] = item["sell"].GetDouble();
+                        buy_price[look_up->second] = item["buy"].GetDouble();
+                    }
                 }
             }
         }
+        else
+            throw std::runtime_error("[Kucoin] Success not true in response");
     }
     else
-        throw std::runtime_error("Success not true in response");
+        throw std::runtime_error("[Kucoin] Invalid json response");
 }

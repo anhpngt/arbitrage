@@ -6,13 +6,9 @@ SET(CMAKE_CXX_FLAGS "-std=c++14 -O2 -Wall -pthread ${CMAKE_CXX_FLAGS}")
 
 find_package(CURL REQUIRED)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(JSONCPP jsoncpp)
-link_libraries(${JSONCPP_LIBRARIES})
-
 include_directories(
+    "include"
     ${CURL_INCLUDE_DIRS}
-    ${JSONCPP_INCLUDE_DIRS}
 )
 
 set(SOURCES
@@ -26,5 +22,4 @@ set(SOURCES
 add_executable(main ${SOURCES})
 target_link_libraries(main
     ${CURL_LIBRARIES}
-    ${JSONCPP_LIBRARIES}
 )

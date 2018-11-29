@@ -12,7 +12,7 @@ class Binance : public API
     Binance()
     {
         name_ = "Binance";
-        curl_easy_setopt(curl_, CURLOPT_URL, "https://api.binance.com/api/v3/ticker/price");
+        curl_easy_setopt(curl_, CURLOPT_URL, "https://api.binance.com/api/v3/ticker/bookTicker");
     }
 
     static std::vector<std::string> SYMBOLS;

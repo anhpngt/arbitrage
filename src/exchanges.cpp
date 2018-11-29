@@ -1,4 +1,6 @@
 #include "exchanges.h"
+#include <thread>
+#include <future>
 
 template <class SiteA, class SiteB>
 Exchange<SiteA, SiteB>::Exchange() : logged_(false)
@@ -38,10 +40,15 @@ void Exchange<SiteA, SiteB>::getArbitrage()
 {
     // Retrieve info
     PROFILER_BEGIN(Requesting);
-    if (!site_a_.requestPrice())
-        throw std::runtime_error("Cannot retrieve data from " + site_a_.name());
-    if (!site_b_.requestPrice())
-        throw std::runtime_error("Cannot retrieve data from " + site_b_.name());
+    // if (!site_a_.requestPrice())
+    //     throw std::runtime_error("Cannot retrieve data from " + site_a_.name());
+    // if (!site_b_.requestPrice())
+    //     throw std::runtime_error("Cannot retrieve data from " + site_b_.name());
+    std::future<bool> a = std::async(std::launch::async, &SiteA::requestPrice, &site_a_);
+    std::future<bool> b = std::async(std::launch::async, &SiteB::requestPrice, &site_b_);
+    if (!(a.get() && b.get()))
+        throw std::runtime_error("Cannot retrieve data from site");
+
     PROFILER_END(Requesting);
 
     PROFILER_BEGIN(Parsing);

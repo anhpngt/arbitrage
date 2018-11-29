@@ -38,21 +38,21 @@ bool API::requestPrice()
 
     if (http_code_ == 200)
     {
-        if (json_reader_.parse(http_data_, json_data_))
+        document_.Parse(http_data_.c_str());
+        if(!document_.HasParseError())
         {
             return true;
         }
         else
         {
             cout << "ERROR: Could not parse HTTP data as JSON" << endl;
-            cout << "HTTP data was:\n"
-                 << http_data_ << endl;
+            // cout << "HTTP data was:\n" << http_data_ << endl;
             return false;
         }
     }
     else
     {
-        cout << "ERROR: http code: " << http_code_ << endl;
+        cout << "ERROR: Could not get data from URL, HTTP code: " << http_code_ << endl;
         return false;
     }
 }
