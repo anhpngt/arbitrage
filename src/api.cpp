@@ -1,6 +1,9 @@
 #include "api.h"
 
-API::API() : name_("API"), headers_(nullptr)
+namespace arbitrage
+{
+
+API::API(const std::string &exchange_name) : exchange_name_(exchange_name), headers_(nullptr)
 {
     // Setup connections
     curl_ = curl_easy_init();
@@ -16,12 +19,19 @@ API::API() : name_("API"), headers_(nullptr)
         curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, API::writeData);
         curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &http_data_);
     }
+
+    // Setup connection for websocket
+    // auto f = std::bind(&API::updateOrderBookCallback, this, std::placeholders::_1);
+    client_.set_message_handler(std::bind(&API::updateOrderBookCallback, this, std::placeholders::_1));
 }
 
 void API::release()
 {
     curl_slist_free_all(headers_);
     curl_easy_cleanup(curl_);
+
+    if(client_.uri().to_string().size() > 0) 
+        client_.close().wait();
 }
 
 API::~API()
@@ -29,9 +39,10 @@ API::~API()
     release();
 }
 
-bool API::requestPrice()
+bool API::requestRestApi(const std::string &url)
 {
     http_data_.clear();
+    curl_easy_setopt(curl_, CURLOPT_URL, url.c_str());
     res_ = curl_easy_perform(curl_);
     if (res_ == CURLE_OK)
         curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &http_code_);
@@ -46,7 +57,7 @@ bool API::requestPrice()
         else
         {
             cout << "ERROR: Could not parse HTTP data as JSON" << endl;
-            // cout << "HTTP data was:\n" << http_data_ << endl;
+            cout << "HTTP data was:\n" << http_data_ << endl;
             return false;
         }
     }
@@ -63,3 +74,5 @@ std::size_t API::writeData(const char *in, std::size_t size, std::size_t num, st
     out->append(in, totalBytes);
     return totalBytes;
 }
+
+} // namespace arbitrage
