@@ -13,15 +13,15 @@ API::API(const std::string &exchange_name) : exchange_name_(exchange_name), head
         headers_ = curl_slist_append(headers_, "charsets: utf-8");
 
         curl_easy_setopt(curl_, CURLOPT_HTTPHEADER, headers_);
-        // curl_easy_setopt(curl_, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-        // curl_easy_setopt(curl_, CURLOPT_TIMEOUT, 10);           // time-out
-        // curl_easy_setopt(curl_, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, API::writeData);
+        curl_easy_setopt(curl_, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+        // curl_easy_setopt(curl_, CURLOPT_VERBOSE, 1L);            // verboseness
+        // curl_easy_setopt(curl_, CURLOPT_TIMEOUT, 10);            // time-out
+        // curl_easy_setopt(curl_, CURLOPT_FOLLOWLOCATION, 1L);     // follows redirect
+        curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, arbitrage::API::writeData);
         curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &http_data_);
     }
 
     // Setup connection for websocket
-    // auto f = std::bind(&API::updateOrderBookCallback, this, std::placeholders::_1);
     client_.set_message_handler(std::bind(&API::updateOrderBookCallback, this, std::placeholders::_1));
 }
 
@@ -30,8 +30,7 @@ void API::release()
     curl_slist_free_all(headers_);
     curl_easy_cleanup(curl_);
 
-    if(client_.uri().to_string().size() > 0) 
-        client_.close().wait();
+    client_.close().wait();
 }
 
 API::~API()
@@ -50,14 +49,15 @@ bool API::requestRestApi(const std::string &url)
     if (http_code_ == 200)
     {
         document_.Parse(http_data_.c_str());
-        if(!document_.HasParseError())
+        if (!document_.HasParseError())
         {
             return true;
         }
         else
         {
             cout << "ERROR: Could not parse HTTP data as JSON" << endl;
-            cout << "HTTP data was:\n" << http_data_ << endl;
+            cout << "HTTP data was:\n"
+                 << http_data_ << endl;
             return false;
         }
     }

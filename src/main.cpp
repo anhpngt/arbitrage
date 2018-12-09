@@ -14,8 +14,9 @@ int main()
     arbitrage::Binance binance;
     while(true)
     {
-        binance.printOrderBook(0);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+        // static int i = 0;
+        // cout << "iter: " << i++ << endl;
     }
 
     // Exchange<Binance, Kucoin> ex("log.txt");

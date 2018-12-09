@@ -36,10 +36,10 @@ Binance::Binance()
     : API("Binance"), is_initialized_(false), is_first_update_(SYMBOLS.size(), false), list_size_(SYMBOLS.size())
 {
     // Connect to websocket
-    std::string stream_name = WS_BASE_ENDPOINT + "/stream?stream=";
+    std::string stream_name = WS_BASE_ENDPOINT + "/stream?streams=";
     for (const std::string &name : STREAM_NAMES)
     {
-        stream_name += name;
+        stream_name += name + "/";
     }
     std::cout << "[Binance] Combined stream name:\n\t" << stream_name << std::endl;
     client_.connect(U(stream_name)).wait();
@@ -63,11 +63,8 @@ void Binance::intializeOrderBook()
     {
         // Request until success
         std::string restapi_url = RESTAPI_BASE_ENDPOINT + RESTAPI_ORDER_BOOK_ENDPOINT + "?symbol=" + SYMBOLS[i] + "&limit=" + std::to_string(ORDER_BOOK_LIMIT);
-        cout << restapi_url << endl;
         while (!requestRestApi(restapi_url))
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+            ;
 
         if (!(document_.HasMember("lastUpdateId") && document_.HasMember("asks") && document_.HasMember("bids")))
             throw std::runtime_error("[Binance] Orderbook init error: missing queries in JSON data");
@@ -75,19 +72,6 @@ void Binance::intializeOrderBook()
         // Fill up order book with data from json parser
         last_update_ids_[i] = document_["lastUpdateId"].GetInt();
         updateBook(order_book_[i], document_["asks"], document_["bids"]);
-        // OrderBook &book = order_book_[i];
-        // for (auto &data : document_["asks"].GetArray())
-        // {
-        //     double price_val = std::stod(data[0].GetString());
-        //     book.asks[price_val] = std::stod(data[1].GetString());
-        //     ask_price_list_.insert(price_val);
-        // }
-        // for (auto &data : document_["bids"].GetArray())
-        // {
-        //     double price_val = std::stod(data[0].GetString());
-        //     book.bids[price_val] = std::stod(data[1].GetString());
-        //     bid_price_list_.insert(price_val);
-        // }
     }
 
     is_initialized_ = true;
@@ -128,8 +112,15 @@ void Binance::updateOrderBookCallback(const web::web_sockets::client::websocket_
         // Check first processed should have U <= lastUpdateId+1 AND u >= lastUpdateId+1
         // step 5 in https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md#how-to-manage-a-local-order-book-correctly
         int idplus1 = last_update_ids_[list_idx] + 1;
+        if (parser["data"]["u"].GetInt() < idplus1)
+        {
+            cout << "Dropped data" << endl;
+            return;
+        }
         if (!(parser["data"]["U"].GetInt() <= idplus1 && parser["data"]["u"].GetInt() >= idplus1))
         {
+            cout << idplus1 << endl;
+            cout << parser["data"]["U"].GetInt() << " and " << parser["data"]["u"].GetInt() << endl;
             is_initialized_ = false; // re-init if failed
             std::cout << "[Binance] ERROR: First order book update failed" << std::endl;
         }
@@ -139,19 +130,6 @@ void Binance::updateOrderBookCallback(const web::web_sockets::client::websocket_
 
     // Update order book
     updateBook(order_book_[list_idx], parser["data"]["a"], parser["data"]["b"]);
-    // OrderBook &book = order_book_[list_idx];
-    // for (const auto &data : parser["data"]["a"].GetArray())
-    // {
-    //     double price_val = std::stod(data[0].GetString());
-    //     book.asks[price_val] = std::stod(data[1].GetString());
-    //     ask_price_list_.insert(price_val);
-    // }
-    // for (const auto &data : parser["data"]["b"].GetArray())
-    // {
-    //     double price_val = std::stod(data[0].GetString());
-    //     book.bids[price_val] = std::stod(data[1].GetString());
-    //     bid_price_list_.insert(price_val);
-    // }
 }
 
 void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const rapidjson::Value &bids)
@@ -167,12 +145,12 @@ void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const ra
         if (quantity_val > 0.0)
         {
             book.asks[price_val] = quantity_val;
-            ask_price_list_.insert(price_val);
+            book.ask_prices.insert(price_val);
         }
         else
         {
             book.asks.erase(price_val);
-            ask_price_list_.erase(price_val);
+            book.ask_prices.erase(price_val);
         }
     }
     for (const auto &data : bids.GetArray())
@@ -182,12 +160,12 @@ void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const ra
         if (quantity_val > 0.0)
         {
             book.bids[price_val] = quantity_val;
-            bid_price_list_.insert(price_val);
+            book.bid_prices.insert(price_val);
         }
         else
         {
             book.bids.erase(price_val);
-            bid_price_list_.erase(price_val);
+            book.bid_prices.erase(price_val);
         }
     }
 }

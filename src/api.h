@@ -44,9 +44,12 @@ namespace arbitrage
 class OrderBook
 {
   public:
-    // Key value: price level, mapped value: quantity
+    // Price-Quantity pairs, key value: price level, mapped value: quantity
     std::unordered_map<double, double> asks;
     std::unordered_map<double, double> bids;
+
+    // List of prices, sorted
+    std::set<double> ask_prices, bid_prices;
 };
 
 class API
@@ -68,23 +71,23 @@ class API
     inline const void printOrderBook(const size_t coin_idx)
     {
         std::lock_guard<std::mutex> ob_lck(order_book_mutex_);
-        const OrderBook &book = order_book_[(coin_idx >= order_book_.size() ? order_book_.size() - 1 : coin_idx)];
+        OrderBook &book = order_book_[(coin_idx >= order_book_.size() ? order_book_.size() - 1 : coin_idx)];
         cout << "Asks:\n";
-        cout << std::setw(10) << "Price" << std::setw(10) << "Quantity\n";
+        cout << std::setw(10) << "Price" << std::setw(15) << "Quantity\n";
         int count = 0;
-        for (auto it = ask_price_list_.begin(), it_end = ask_price_list_.end(); it != it_end; ++it)
+        for (auto it = book.ask_prices.begin(), it_end = book.ask_prices.end(); it != it_end; ++it)
         {
-            cout << std::setw(10) << *it << std::setw(10) << book.asks.at(*it) << "\n";
+            cout << std::setw(10) << *it << std::setw(15) << book.asks[*it] << "\n";
             if (++count > 5)
                 break;
         }
         
         cout << "\nBids\n";
-        cout << std::setw(10) << "Price" << std::setw(10) << "Quantity\n";
+        cout << std::setw(10) << "Price" << std::setw(15) << "Quantity\n";
         count = 0;
-        for (auto it = bid_price_list_.rbegin(), it_end = bid_price_list_.rend(); it != it_end; ++it)
+        for (auto it = book.bid_prices.rbegin(), it_end = book.bid_prices.rend(); it != it_end; ++it)
         {
-            cout << std::setw(10) << *it << std::setw(10) << book.bids.at(*it) << "\n";
+            cout << std::setw(10) << *it << std::setw(15) << book.bids[*it]<< "\n";
             if (++count > 5)
                 break;
         }
@@ -102,9 +105,6 @@ class API
 
     /** Order book map */
     std::vector<OrderBook> order_book_;
-
-    /** List to keep track of the prices */
-    std::set<double> ask_price_list_, bid_price_list_;
 
     /** Variables for websocket */
     web::websockets::client::websocket_callback_client client_;
@@ -124,8 +124,8 @@ class API
     CURL *curl_;                 // curl
     struct curl_slist *headers_; // out header specs
     CURLcode res_;               // retrieval curl result
-    int http_code_;              // retrieval result code
     std::string http_data_;      // retrieval raw json data
+    int http_code_;              // retrieval result code
 };
 
 } // namespace arbitrage
