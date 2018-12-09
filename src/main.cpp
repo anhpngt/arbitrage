@@ -3,7 +3,7 @@
 
 
 #include "binance.h"
-// #include "kucoin.h"
+#include "kucoin.h"
 // #include "exchanges.h"
 
 using namespace std;
@@ -12,6 +12,7 @@ int main()
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
     arbitrage::Binance binance;
+    // arbitrage::Kucoin kucoin;
     while(true)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10000));

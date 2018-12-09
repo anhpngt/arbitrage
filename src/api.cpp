@@ -68,6 +68,33 @@ bool API::requestRestApi(const std::string &url)
     }
 }
 
+void API::printOrderBook(const size_t coin_idx)
+{
+    std::lock_guard<std::mutex> ob_lck(order_book_mutex_);
+    OrderBook &book = order_book_[(coin_idx >= order_book_.size() ? order_book_.size() - 1 : coin_idx)];
+    cout << "Asks:\n";
+    cout << std::setw(10) << "Price" << std::setw(15) << "Quantity\n";
+    int count = 0;
+    for (auto it = book.ask_prices.begin(), it_end = book.ask_prices.end(); it != it_end; ++it)
+    {
+        cout << std::setw(10) << std::setprecision(10) << *it << std::setw(15) << std::setprecision(10) << book.asks[*it] << "\n";
+        if (++count > 5)
+            break;
+    }
+
+    cout << "\nBids\n";
+    cout << std::setw(10) << "Price" << std::setw(15) << "Quantity\n";
+    count = 0;
+    for (auto it = book.bid_prices.rbegin(), it_end = book.bid_prices.rend(); it != it_end; ++it)
+    {
+        cout << std::setw(10) << std::setprecision(10) << *it << std::setw(15) << std::setprecision(10) << book.bids[*it] << "\n";
+        if (++count > 5)
+            break;
+    }
+
+    cout << endl;
+}
+
 std::size_t API::writeData(const char *in, std::size_t size, std::size_t num, std::string *out)
 {
     const std::size_t totalBytes(size * num);

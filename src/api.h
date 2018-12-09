@@ -67,33 +67,10 @@ class API
     /* Get member values */
     // inline int getHttpResult() const { return http_code_; }
     inline const std::string &name() const { return exchange_name_; }
+    inline const std::string &httpData() const { return http_data_; }
 
-    inline const void printOrderBook(const size_t coin_idx)
-    {
-        std::lock_guard<std::mutex> ob_lck(order_book_mutex_);
-        OrderBook &book = order_book_[(coin_idx >= order_book_.size() ? order_book_.size() - 1 : coin_idx)];
-        cout << "Asks:\n";
-        cout << std::setw(10) << "Price" << std::setw(15) << "Quantity\n";
-        int count = 0;
-        for (auto it = book.ask_prices.begin(), it_end = book.ask_prices.end(); it != it_end; ++it)
-        {
-            cout << std::setw(10) << *it << std::setw(15) << book.asks[*it] << "\n";
-            if (++count > 5)
-                break;
-        }
-        
-        cout << "\nBids\n";
-        cout << std::setw(10) << "Price" << std::setw(15) << "Quantity\n";
-        count = 0;
-        for (auto it = book.bid_prices.rbegin(), it_end = book.bid_prices.rend(); it != it_end; ++it)
-        {
-            cout << std::setw(10) << *it << std::setw(15) << book.bids[*it]<< "\n";
-            if (++count > 5)
-                break;
-        }
-
-        cout << endl;
-    }
+    /** Pretty print the order book */
+    void printOrderBook(const size_t coin_idx);
 
     static constexpr double FEE_TRADE_RATIO = 0.001;
 

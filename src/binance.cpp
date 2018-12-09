@@ -46,6 +46,7 @@ Binance::Binance()
 
     // Query all orderbook data
     intializeOrderBook();
+    std::cout << "[Binance] Initialization finished." << std::endl;
 }
 
 void Binance::intializeOrderBook()
@@ -59,7 +60,7 @@ void Binance::intializeOrderBook()
     order_book_.clear();
     order_book_.resize(list_size_);
     last_update_ids_.resize(list_size_);
-    for (size_t i = 0, size = list_size_; i < size; ++i)
+    for (size_t i = 0; i < list_size_; ++i)
     {
         // Request until success
         std::string restapi_url = RESTAPI_BASE_ENDPOINT + RESTAPI_ORDER_BOOK_ENDPOINT + "?symbol=" + SYMBOLS[i] + "&limit=" + std::to_string(ORDER_BOOK_LIMIT);
@@ -82,7 +83,7 @@ void Binance::updateOrderBookCallback(const web::web_sockets::client::websocket_
 {
     if (!is_initialized_)
     {
-        cout << "Received callback but not init yet" << endl;
+        cout << "[Binance] Received callback but not init yet" << endl;
         intializeOrderBook();
         return;
     }
@@ -130,6 +131,7 @@ void Binance::updateOrderBookCallback(const web::web_sockets::client::websocket_
 
     // Update order book
     updateBook(order_book_[list_idx], parser["data"]["a"], parser["data"]["b"]);
+    printOrderBook(0);
 }
 
 void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const rapidjson::Value &bids)
@@ -138,6 +140,7 @@ void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const ra
     assert(bids.IsArray());
     std::lock_guard<std::mutex> ob_lck(order_book_mutex_);
 
+    // Each array format is [price, amount, ignored]
     for (const auto &data : asks.GetArray())
     {
         double price_val = std::stod(data[0].GetString());
@@ -169,25 +172,5 @@ void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const ra
         }
     }
 }
-
-// void Binance::parsePrice(std::vector<double> &sell_price, std::vector<double> &buy_price)
-// {
-//     sell_price.resize(SYMBOLS.size());
-//     buy_price.resize(SYMBOLS.size());
-//     for (const auto &item : document_.GetArray())
-//     {
-//         if (item.HasMember("symbol") && item.HasMember("bidPrice") && item.HasMember("askPrice"))
-//         {
-//             std::unordered_map<std::string, int>::const_iterator look_up = SYMBOL_MAP.find(item["symbol"].GetString());
-//             if (look_up != SYMBOL_MAP.end())
-//             {
-//                 sell_price[look_up->second] = std::stod(item["askPrice"].GetString());
-//                 buy_price[look_up->second] = std::stod(item["bidPrice"].GetString());
-//             }
-//         }
-//         else
-//             throw std::runtime_error("[Binance] Invalid item encountered");
-//     }
-// }
 
 } // namespace arbitrage
