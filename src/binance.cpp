@@ -32,6 +32,8 @@ const std::string Binance::RESTAPI_ORDER_BOOK_ENDPOINT = "/api/v1/depth";
 const std::string Binance::WS_BASE_ENDPOINT = "wss://stream.binance.com:9443";
 const int Binance::ORDER_BOOK_LIMIT = 100;
 
+const int Binance::PONG_INTERVAL = 30000;
+
 Binance::Binance()
     : API("Binance"), is_initialized_(false), is_first_update_(SYMBOLS.size(), false), list_size_(SYMBOLS.size())
 {
@@ -65,13 +67,15 @@ void Binance::intializeOrderBook()
         // Request until success
         std::string restapi_url = RESTAPI_BASE_ENDPOINT + RESTAPI_ORDER_BOOK_ENDPOINT + "?symbol=" + SYMBOLS[i] + "&limit=" + std::to_string(ORDER_BOOK_LIMIT);
         while (!requestRestApi(restapi_url))
-            ;
+        {
+            std::this_thread::yield();
+        }
 
         if (!(document_.HasMember("lastUpdateId") && document_.HasMember("asks") && document_.HasMember("bids")))
             throw std::runtime_error("[Binance] Orderbook init error: missing queries in JSON data");
 
         // Fill up order book with data from json parser
-        last_update_ids_[i] = document_["lastUpdateId"].GetInt();
+        last_update_ids_[i] = std::stoi(document_["lastUpdateId"].GetString());
         updateBook(order_book_[i], document_["asks"], document_["bids"]);
     }
 
@@ -84,14 +88,13 @@ void Binance::updateOrderBookCallback(const web::web_sockets::client::websocket_
     if (!is_initialized_)
     {
         cout << "[Binance] Received callback but not init yet" << endl;
-        intializeOrderBook();
+        // intializeOrderBook();
         return;
     }
 
     // Parse JSON
     rapidjson::Document parser;
-    parser.Parse(msg.extract_string().get().c_str());
-    if (parser.HasParseError())
+    if (parser.Parse<rapidjson::ParseFlag::kParseNumbersAsStringsFlag>(msg.extract_string().get().c_str()).HasParseError())
     {
         is_initialized_ = false;
     }
@@ -113,15 +116,17 @@ void Binance::updateOrderBookCallback(const web::web_sockets::client::websocket_
         // Check first processed should have U <= lastUpdateId+1 AND u >= lastUpdateId+1
         // step 5 in https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md#how-to-manage-a-local-order-book-correctly
         int idplus1 = last_update_ids_[list_idx] + 1;
-        if (parser["data"]["u"].GetInt() < idplus1)
+        int u = std::stoi(parser["data"]["u"].GetString());
+        int U = std::stoi(parser["data"]["U"].GetString());
+        if (u < idplus1)
         {
             cout << "Dropped data" << endl;
             return;
         }
-        if (!(parser["data"]["U"].GetInt() <= idplus1 && parser["data"]["u"].GetInt() >= idplus1))
+        if (!(U <= idplus1 && u >= idplus1))
         {
             cout << idplus1 << endl;
-            cout << parser["data"]["U"].GetInt() << " and " << parser["data"]["u"].GetInt() << endl;
+            cout << U << " and " << u << endl;
             is_initialized_ = false; // re-init if failed
             std::cout << "[Binance] ERROR: First order book update failed" << std::endl;
         }
@@ -131,7 +136,6 @@ void Binance::updateOrderBookCallback(const web::web_sockets::client::websocket_
 
     // Update order book
     updateBook(order_book_[list_idx], parser["data"]["a"], parser["data"]["b"]);
-    printOrderBook(0);
 }
 
 void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const rapidjson::Value &bids)
@@ -143,7 +147,7 @@ void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const ra
     // Each array format is [price, amount, ignored]
     for (const auto &data : asks.GetArray())
     {
-        double price_val = std::stod(data[0].GetString());
+        std::string price_val = data[0].GetString();
         double quantity_val = std::stod(data[1].GetString());
         if (quantity_val > 0.0)
         {
@@ -158,7 +162,7 @@ void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const ra
     }
     for (const auto &data : bids.GetArray())
     {
-        double price_val = std::stod(data[0].GetString());
+        std::string price_val = data[0].GetString();
         double quantity_val = std::stod(data[1].GetString());
         if (quantity_val > 0.0)
         {
@@ -170,6 +174,15 @@ void Binance::updateBook(OrderBook &book, const rapidjson::Value &asks, const ra
             book.bids.erase(price_val);
             book.bid_prices.erase(price_val);
         }
+    }
+}
+
+void Binance::pingServer()
+{
+    while (true)
+    {
+        client_.send(msg_ping_).wait();
+        std::this_thread::sleep_for(std::chrono::milliseconds(PONG_INTERVAL));
     }
 }
 

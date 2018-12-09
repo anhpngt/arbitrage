@@ -45,11 +45,12 @@ class OrderBook
 {
   public:
     // Price-Quantity pairs, key value: price level, mapped value: quantity
-    std::unordered_map<double, double> asks;
-    std::unordered_map<double, double> bids;
+    // Price values are stored in string to preserve precision
+    std::unordered_map<std::string, double> asks;
+    std::unordered_map<std::string, double> bids;
 
     // List of prices, sorted
-    std::set<double> ask_prices, bid_prices;
+    std::set<std::string> ask_prices, bid_prices;
 };
 
 class API
@@ -60,6 +61,13 @@ class API
 
     /* Use REST API to get quotes. API is implemented in class' constructor */
     bool requestRestApi(const std::string &url);
+
+    /** Get order book */
+    inline std::vector<OrderBook> getBook()
+    {
+        std::lock_guard<std::mutex> ob_lck(order_book_mutex_);
+        return order_book_;
+    }
 
     /* Parse price from json */
     // virtual void parsePrice(std::vector<double> &sell_price, std::vector<double> &buy_price) = 0;

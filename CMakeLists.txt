@@ -16,7 +16,7 @@ include_directories(
 set(SOURCES
     src/main.cpp
     src/api.cpp
-    # src/exchanges.cpp
+    src/exchanges.cpp
     src/binance.cpp
     src/kucoin.cpp
 )

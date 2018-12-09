@@ -33,6 +33,7 @@ const std::string Kucoin::WS_BASE_ENDPOINT = "wss://push1.kucoin.com/endpoint";
 const int Kucoin::ORDER_BOOK_LIMIT = 100;
 
 const std::string Kucoin::WEBSOCKET_REQUEST_ENDPOINT = "https://kitchen.kucoin.com/v1/bullet/usercenter/loginUser?protocol=websocket&encrypt=true";
+const int Kucoin::PING_INTERVAL = 10000;
 
 Kucoin::Kucoin() : API("Kucoin"), is_initialized_(false), list_size_(SYMBOLS.size()), is_ws_connected_(false)
 {
@@ -54,7 +55,19 @@ Kucoin::Kucoin() : API("Kucoin"), is_initialized_(false), list_size_(SYMBOLS.siz
     std::string websocket_endpoint = ws_base_endpoint_ + "?bulletToken=" + bullet_token_ + "&format=json&resource=api";
     std::cout << "[Kucoin] Websocket endpoint: " << websocket_endpoint << std::endl;
     std::cout << "[Kucoin] Connecting to websocket" << std::endl;
-    client_.connect(U(websocket_endpoint)).wait();
+    while (true)
+    {
+        try
+        {
+            client_.connect(U(websocket_endpoint)).wait();
+            break;
+        }
+        catch (web::websockets::client::websocket_exception &e)
+        {
+            cout << e.what() << endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+    }
 
     while (!is_ws_connected_)
     {
@@ -74,6 +87,12 @@ Kucoin::Kucoin() : API("Kucoin"), is_initialized_(false), list_size_(SYMBOLS.siz
 
     // Query all orderbook data for the first time
     intializeOrderBook();
+
+    // Set up periodic pinging
+    msg_ping_.set_utf8_message("{\"id\":123, \"type\":\"ping\"}");
+    pinger_thread_ = std::thread(&Kucoin::pingServer, this);
+    pinger_thread_.detach();
+
     std::cout << "[Kucoin] Initialization finished." << std::endl;
 }
 
@@ -92,7 +111,9 @@ void Kucoin::intializeOrderBook()
         // Request until success
         std::string restapi_url = RESTAPI_BASE_ENDPOINT + RESTAPI_ORDER_BOOK_ENDPOINT + "?symbol=" + SYMBOLS[i] + "&limit=" + std::to_string(ORDER_BOOK_LIMIT);
         while (!requestRestApi(restapi_url))
-            ;
+        {
+            std::this_thread::yield();
+        }
 
         if (!(document_.HasMember("success") && document_.HasMember("data")))
             throw std::runtime_error("[Kucoin] Orderbook init error: missing queries in JSON data");
@@ -112,13 +133,8 @@ void Kucoin::updateOrderBookCallback(const web::web_sockets::client::websocket_i
     {
         // the acknowledgement message for connection
         rapidjson::Document parser;
-        parser.Parse(msg_str.c_str());
-        cout << parser.HasParseError() << endl;
-        if (!parser.HasParseError())
+        if (!parser.Parse(msg_str.c_str()).HasParseError())
         {
-            cout << parser.HasMember("id") << endl;
-            cout << parser.HasMember("type") << endl;
-
             if (parser.HasMember("id") && parser.HasMember("type"))
             {
                 std::string msg_type = parser["type"].GetString();
@@ -142,9 +158,10 @@ void Kucoin::updateOrderBookCallback(const web::web_sockets::client::websocket_i
         return;
     }
 
-    // Check if correct msg type
     rapidjson::Document parser;
-    parser.Parse(msg_str.c_str());
+    parser.Parse<rapidjson::ParseFlag::kParseNumbersAsStringsFlag>(msg_str.c_str());
+
+    // Check if correct key values
     if (!(parser.HasMember("topic") && parser.HasMember("data")))
         return;
     else if (!(parser["data"].HasMember("price") && parser["data"].HasMember("count")))
@@ -158,8 +175,8 @@ void Kucoin::updateOrderBookCallback(const web::web_sockets::client::websocket_i
     size_t list_idx = lookup - TOPIC_NAMES.begin();
     std::string action = parser["data"]["action"].GetString();
     std::string type = parser["data"]["type"].GetString();
-    double price_val = parser["data"]["price"].GetDouble();
-    double amount_val = parser["data"]["count"].GetDouble();
+    std::string price_val = parser["data"]["price"].GetString();
+    double amount_val = std::stod(parser["data"]["count"].GetString());
 
     {
         std::lock_guard<std::mutex> ob_lck(order_book_mutex_);
@@ -192,7 +209,7 @@ void Kucoin::updateOrderBookCallback(const web::web_sockets::client::websocket_i
         }
     }
 
-    printOrderBook(0);
+    // printOrderBook(0);
 }
 
 void Kucoin::updateBook(OrderBook &book, const rapidjson::Value &asks, const rapidjson::Value &bids)
@@ -204,17 +221,26 @@ void Kucoin::updateBook(OrderBook &book, const rapidjson::Value &asks, const rap
     // Each array format is [price, amount, volume]
     for (const auto &data : asks.GetArray())
     {
-        double price_val = data[0].GetDouble();
-        double quantity_val = data[1].GetDouble();
+        std::string price_val = data[0].GetString();
+        double quantity_val = std::stod(data[1].GetString());
         book.asks[price_val] = quantity_val;
         book.ask_prices.insert(price_val);
     }
     for (const auto &data : bids.GetArray())
     {
-        double price_val = data[0].GetDouble();
-        double quantity_val = data[1].GetDouble();
+        std::string price_val = data[0].GetString();
+        double quantity_val = std::stod(data[1].GetString());
         book.bids[price_val] = quantity_val;
         book.bid_prices.insert(price_val);
+    }
+}
+
+void Kucoin::pingServer()
+{
+    while (true)
+    {
+        client_.send(msg_ping_).wait();
+        std::this_thread::sleep_for(std::chrono::milliseconds(PING_INTERVAL));
     }
 }
 

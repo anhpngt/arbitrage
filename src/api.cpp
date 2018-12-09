@@ -48,8 +48,7 @@ bool API::requestRestApi(const std::string &url)
 
     if (http_code_ == 200)
     {
-        document_.Parse(http_data_.c_str());
-        if (!document_.HasParseError())
+        if (!document_.Parse<rapidjson::ParseFlag::kParseNumbersAsStringsFlag>(http_data_.c_str()).HasParseError())
         {
             return true;
         }
@@ -77,7 +76,7 @@ void API::printOrderBook(const size_t coin_idx)
     int count = 0;
     for (auto it = book.ask_prices.begin(), it_end = book.ask_prices.end(); it != it_end; ++it)
     {
-        cout << std::setw(10) << std::setprecision(10) << *it << std::setw(15) << std::setprecision(10) << book.asks[*it] << "\n";
+        cout << std::setw(10) << *it << std::setw(15) << std::setprecision(10) << book.asks[*it] << "\n";
         if (++count > 5)
             break;
     }
@@ -87,7 +86,7 @@ void API::printOrderBook(const size_t coin_idx)
     count = 0;
     for (auto it = book.bid_prices.rbegin(), it_end = book.bid_prices.rend(); it != it_end; ++it)
     {
-        cout << std::setw(10) << std::setprecision(10) << *it << std::setw(15) << std::setprecision(10) << book.bids[*it] << "\n";
+        cout << std::setw(10) << *it << std::setw(15) << std::setprecision(10) << book.bids[*it] << "\n";
         if (++count > 5)
             break;
     }
